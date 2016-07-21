@@ -121,6 +121,8 @@ class dbConnection
 				$output[] = $row;
 			}
 			
+			if (empty($output) && !empty($stmt->insert_id))
+				$output = $stmt->insert_id;
 		}
 		return $output;
 	}

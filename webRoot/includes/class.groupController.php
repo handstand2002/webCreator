@@ -26,11 +26,25 @@ class groupController {
 		$link->queryDB($query, $values);
 	}
 	
-	function getSubGroups($groupName)
+	Function addGroup( $title )
+	{
+		$link = $_ENV["dbConnection"];
+		$query = "insert into classGroup (parentid, ispage, title) values (?, ?, ?)";
+		$values = array(null, false, $title);
+		
+		$link->queryDB($query, $values);
+	}
+	
+	Function getGroups()
 	{
 		$link = $_ENV["dbConnection"];
 		
-		$query = "select "
+		$query = "select parentid, ispage, title from classGroup";
+		$values = array();
+		
+		$result = $link->queryDB($query, $values);
+		
+		return $result;
 	}
 	
 } // End of groupController class

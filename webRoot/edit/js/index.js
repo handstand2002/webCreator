@@ -70,13 +70,7 @@ function sendAjaxRequest(showSpinner)
 	document.body.appendChild(form);
 }
 
-function setPagesList(ajaxResult)
-{
-	console.log("result:");
-	console.log(ajaxResult);
-}
-
-function testAjaxRequest()
+function getPagesList()
 {
 	var t = {};
 	t.action = "getPages";
@@ -85,5 +79,101 @@ function testAjaxRequest()
 	t.response = "hello, world";
 	
 	addAjaxRequest(t);
+	sendAjaxRequest(true);
+}
+
+function setPagesList(ajaxResult)
+{
+	var header = document.createElement("h4");
+	var headerText = document.createTextNode("Pages");
+	header.appendChild(headerText);
+	
+	var pageList = document.createElement("select");
+	pageList.multiple = true;
+	for (x in ajaxResult)
+	{
+		var option = document.createElement("option");
+		option.text = ajaxResult[x];
+		pageList.add(option);
+	}
+	
+	document.body.appendChild(header);
+	document.body.appendChild(document.createElement("br"));
+	document.body.appendChild(pageList);
+}
+
+function getGroupsList()
+{
+	var request = {};
+	request.action = "getGroups";
+	request.parameters = {};
+	request.callback = "setGroupsList(result)";
+	
+	addAjaxRequest(request);
+	sendAjaxRequest(true);
+}
+
+function setGroupsList(ajaxResult)
+{
+	var groupDiv = document.getElementById("groupDiv");
+	while (groupDiv.children.length > 0)	// Kill all the children
+		groupDiv.removeChild(groupDiv.children[0]);
+	
+	var header = document.createElement("h4");
+	var headerText = document.createTextNode("Groups");
+	header.appendChild(headerText);
+	
+	var table = document.createElement("table");
+	for (x in ajaxResult)
+	{
+		var groupName = ajaxResult[x]["title"];
+		
+		var row = table.insertRow(-1);
+		var cell = row.insertCell(0);
+		var cellText = document.createTextNode(groupName);
+		cell.appendChild(cellText);
+		
+	}
+	groupDiv.appendChild(header);
+	groupDiv.appendChild(document.createElement("br"));
+	groupDiv.appendChild(table);
+	
+	// Create the form that will accept new group names
+	var newGroupInput = document.createElement("input");
+	newGroupInput.type = "text";
+	newGroupInput.id = "newGroupInput";
+	var newGroupInputSubmit = document.createElement("button");
+	newGroupInputSubmit.setAttribute("onclick", "addGroup(document.getElementById('newGroupInput').value)");
+	var submitBtn = document.createTextNode("Add");
+	newGroupInputSubmit.appendChild(submitBtn);
+	
+	
+	groupDiv.appendChild(document.createElement("br"));
+	groupDiv.appendChild(newGroupInput);
+	groupDiv.appendChild(newGroupInputSubmit);
+	groupDiv.appendChild(document.createElement("br"));
+	groupDiv.appendChild(document.createElement("br"));
+}
+
+
+
+function addGroup(name)
+{
+	var request = {};
+	request.action = "addGroup";
+	request.parameters = {};
+	request.parameters.name = name;
+	request.callback = "";
+	
+	addAjaxRequest(request);
+	
+	
+	request = {};
+	request.action = "getGroups";
+	request.parameters = {};
+	request.callback = "setGroupsList(result)"; 
+	
+	addAjaxRequest(request);
+	
 	sendAjaxRequest(true);
 }

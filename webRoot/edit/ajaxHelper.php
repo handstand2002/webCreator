@@ -1,4 +1,6 @@
 <?php 
+include_once __DIR__."/../includes/class.groupController.php";
+
 class ajaxHelper
 {
 	Function runAction($action, $parameters)
@@ -6,8 +8,17 @@ class ajaxHelper
 		$result = "";
 		Switch ($action) {
 			case "getPages":
-				$result = "hello";
+				$result = array("hello", "another");
 				break;
+			case "getGroups":
+				$groupController = new groupController;
+				$result = $groupController->getGroups();
+				break;
+			case "addGroup":
+				$groupController = new groupController;
+				$groupController->addGroup( $parameters->name );
+				break;
+				
 			
 		}// End Switch
 		
