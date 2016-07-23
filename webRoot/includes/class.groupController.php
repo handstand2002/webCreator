@@ -35,13 +35,21 @@ class groupController {
 		$link->queryDB($query, $values);
 	}
 	
-	Function getGroups()
+	Function getGroups($parentid)
 	{
 		$link = $_ENV["dbConnection"];
 		
-		$query = "select parentid, ispage, title from classGroup";
 		$values = array();
+		$query = "select id, parentid, ispage, title from classGroup where ";
+		if ($parentid == NULL)
+			$query .= "parentid IS NULL";
+		else
+		{
+			$query .= "parentid=?";
+			$values[] = $parentid;
+		}
 		
+// 		echo "Query: $query<pre>".print_r($values, true)."</pre>";
 		$result = $link->queryDB($query, $values);
 		
 		return $result;

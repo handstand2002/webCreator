@@ -1,5 +1,11 @@
 var requestQueue = [];
 var requestAttempts = 0;
+var selectedGroup = null;
+var allGroupsById = {};
+var allGroupsByParent = {};
+
+var layersHidden = [];
+var activeLayer = 0;
 
 function addAjaxRequest(request)
 {
@@ -51,23 +57,25 @@ function sendAjaxRequest(showSpinner)
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xhttp.send("d=" + JSON.stringify(requestInProgress));
 	
-	var form = document.createElement("form");
-	form.action = "ajaxHelper.php";
-	form.target = "_BLANK";
-	form.method = "POST";
 	
-	var input = document.createElement("input");
-	input.type = "hidden";
-	input.name = "d";
-	input.value = JSON.stringify(requestInProgress);
 	
-	var subBtn = document.createElement("input");
-	subBtn.type = "submit";
-	
-	form.appendChild(input);
-	form.appendChild(subBtn);
-	
-	document.body.appendChild(form);
+//	var form = document.createElement("form");
+//	form.action = "ajaxHelper.php";
+//	form.target = "_BLANK";
+//	form.method = "POST";
+//	
+//	var input = document.createElement("input");
+//	input.type = "hidden";
+//	input.name = "d";
+//	input.value = JSON.stringify(requestInProgress);
+//	
+//	var subBtn = document.createElement("input");
+//	subBtn.type = "submit";
+//	
+//	form.appendChild(input);
+//	form.appendChild(subBtn);
+//	
+//	document.body.appendChild(form);
 }
 
 function getPagesList()
@@ -102,11 +110,24 @@ function setPagesList(ajaxResult)
 	document.body.appendChild(pageList);
 }
 
-function getGroupsList()
+function getParentGroupsList()
 {
 	var request = {};
 	request.action = "getGroups";
 	request.parameters = {};
+	request.parameters.parentid = null;
+	request.callback = "setGroupsList(result)";
+	
+	addAjaxRequest(request);
+	sendAjaxRequest(true);
+}
+
+function getGroupsList(parentid)
+{
+	var request = {};
+	request.action = "getGroups";
+	request.parameters = {};
+	request.parameters.parentid = parentid;
 	request.callback = "setGroupsList(result)";
 	
 	addAjaxRequest(request);
@@ -115,50 +136,215 @@ function getGroupsList()
 
 function setGroupsList(ajaxResult)
 {
-	var groupDiv = document.getElementById("groupDiv");
-	while (groupDiv.children.length > 0)	// Kill all the children
-		groupDiv.removeChild(groupDiv.children[0]);
+	var parentid = null;
+	if (typeof(ajaxResult) != 'undefined' && typeof(ajaxResult[0]) != 'undefined')
+		parentid = ajaxResult[0]["parentid"];
+	if (parentid == null)
+	{
+		parentid = 0;
+	}
+	var groupDiv = document.getElementById("groupDiv"+parentid);
+	if (groupDiv != null)
+	{
+		while (groupDiv.children.length > 0)	// Kill all the children
+			groupDiv.removeChild(groupDiv.children[0]);
+		groupDiv.remove();
+	}
+	groupDiv = document.createElement("div");
+	groupDiv.id = "groupDiv" + parentid;
+	document.body.appendChild(groupDiv);
 	
 	var header = document.createElement("h4");
 	var headerText = document.createTextNode("Groups");
 	header.appendChild(headerText);
 	
 	var table = document.createElement("table");
+	// Set the layer num, based on parents
+	var layerNum = 0;
+	if (parentid > 0)
+		layerNum = (allGroupsById[parentid]["layerNum"] + 1);
+	
+	groupDiv.className = "groupDivLayerNum" + layerNum;
+	
 	for (x in ajaxResult)
 	{
+		ajaxResult[x]["layerNum"] = layerNum;
+		
+		// Store groups, indexed by id number, parentid num
+		allGroupsById[ajaxResult[x]["id"]] = ajaxResult[x];
+		if (ajaxResult[x]["parentid"] == null)
+		{
+			if (typeof(allGroupsByParent[0]) == 'undefined')
+				allGroupsByParent[0] = [];
+			allGroupsByParent[0].push(ajaxResult[x]);
+		}
+		else
+		{
+			if (typeof(allGroupsByParent[ajaxResult[x]["parentid"]]) == 'undefined')
+				allGroupsByParent[ajaxResult[x]["parentid"]] = [];
+			allGroupsByParent[ajaxResult[x]["parentid"]].push(ajaxResult[x]);
+		}
+		
 		var groupName = ajaxResult[x]["title"];
 		
 		var row = table.insertRow(-1);
 		var cell = row.insertCell(0);
+		var btn = document.createElement("button");
+		btn.setAttribute("onclick", "groupSelect(" + ajaxResult[x]["id"] + ")" );
+		btn.id = "groupBtnId" + ajaxResult[x]["id"];
+		
 		var cellText = document.createTextNode(groupName);
-		cell.appendChild(cellText);
+		btn.appendChild(cellText);
+		
+		cell.appendChild(btn);
 		
 	}
 	groupDiv.appendChild(header);
-	groupDiv.appendChild(document.createElement("br"));
-	groupDiv.appendChild(table);
+	
 	
 	// Create the form that will accept new group names
 	var newGroupInput = document.createElement("input");
 	newGroupInput.type = "text";
 	newGroupInput.id = "newGroupInput";
+	
 	var newGroupInputSubmit = document.createElement("button");
 	newGroupInputSubmit.setAttribute("onclick", "addGroup(document.getElementById('newGroupInput').value)");
+	
 	var submitBtn = document.createTextNode("Add");
 	newGroupInputSubmit.appendChild(submitBtn);
 	
-	
-	groupDiv.appendChild(document.createElement("br"));
 	groupDiv.appendChild(newGroupInput);
 	groupDiv.appendChild(newGroupInputSubmit);
 	groupDiv.appendChild(document.createElement("br"));
-	groupDiv.appendChild(document.createElement("br"));
+	groupDiv.appendChild(table);
+	groupDiv.appendChild(document.createElement("hr"));
 }
 
-
-
-function addGroup(name)
+function groupHighlight(id)
 {
+	var btn = document.getElementById("groupBtnId"+id);
+	if (btn != null)
+	{
+		btn.style.color = "blue";
+		btn.style.fontWeight = "bold";
+	}
+}
+
+function treeShowOthersInLayer(id)
+{
+	var groupToKeep = allGroupsById[id];
+	var allGroupsInLayer = null;
+	var parentid = 0;
+	if (groupToKeep["parentid"] != null)
+		parentid = groupToKeep["parentid"];
+	
+	for (x in layersHidden)
+	{
+		if (layersHidden[x] == parentid)
+		{
+			// Remove the index from the array
+			layersHidden.splice(x, 1);
+			break;
+		}
+			
+	}
+	
+	allGroupsInLayer = allGroupsByParent[parentid];
+	
+	for (x in allGroupsInLayer)
+	{
+		var thisGroup = allGroupsInLayer[x];
+		
+		var showGroup = document.getElementById("groupBtnId" + thisGroup["id"]);
+		if (showGroup != null)
+		{
+			showGroup.disabled = false;
+			showGroup.style.opacity = 1;
+		}
+	}
+}
+
+function toggleHideLayer(id)
+{
+	parentid = allGroupsById[id]["parentid"];
+	if (parentid == null)
+		parentid = 0;
+	var alreadyHidden = false;
+	for (x in layersHidden)
+	{
+		if (layersHidden[x] == parentid)
+		{
+			alreadyHidden = true;
+			break;
+		}
+	}
+	
+	if (alreadyHidden)
+		treeShowOthersInLayer(id);
+	else
+		treeHideOthersInLayer(id);
+}
+
+function treeHideOthersInLayer(id)
+{
+	var groupToKeep = allGroupsById[id];
+	var allGroupsInLayer = null;
+	if (groupToKeep["parentid"] == null)
+	{
+		layersHidden.push(0);
+		allGroupsInLayer = allGroupsByParent[0];
+	}
+	else
+	{
+		layersHidden.push(groupToKeep["parentid"]);
+		allGroupsInLayer = allGroupsByParent[groupToKeep["parentid"]];
+	}
+		
+	
+	for (x in allGroupsInLayer)
+	{
+		var thisGroup = allGroupsInLayer[x];
+		if (thisGroup["id"] != groupToKeep["id"])
+		{
+			var killGroup = document.getElementById("groupBtnId" + thisGroup["id"]);
+			if (killGroup != null)
+			{
+				killGroup.disabled = true;
+				killGroup.style.opacity = .2;
+			}
+		}
+	}
+}
+
+function groupUnhighlight(id)
+{
+	var btn = document.getElementById("groupBtnId"+id);
+	if (btn != null)
+	{
+		btn.style.color = "initial";
+		btn.style.fontWeight = "normal";
+	}
+}
+
+function groupSelect(id)
+{
+	getGroupsList(id);
+	if (selectedGroup != null)
+		groupUnhighlight(selectedGroup["id"]);
+	
+	selectedGroup = allGroupsById[id];
+	
+	groupHighlight(id);
+	
+//	treeHideOthersInLayer(id);
+	toggleHideLayer(id);
+}
+
+function addGroup(name, parentid)
+{
+	if (parentid == 0)
+		parentid = null;
+	
 	var request = {};
 	request.action = "addGroup";
 	request.parameters = {};
@@ -171,6 +357,7 @@ function addGroup(name)
 	request = {};
 	request.action = "getGroups";
 	request.parameters = {};
+	request.parameters.parentid = parentid; 
 	request.callback = "setGroupsList(result)"; 
 	
 	addAjaxRequest(request);

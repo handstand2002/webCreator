@@ -12,7 +12,7 @@ class ajaxHelper
 				break;
 			case "getGroups":
 				$groupController = new groupController;
-				$result = $groupController->getGroups();
+				$result = $groupController->getGroups($parameters->parentid);
 				break;
 			case "addGroup":
 				$groupController = new groupController;

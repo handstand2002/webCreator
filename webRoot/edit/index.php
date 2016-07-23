@@ -9,6 +9,6 @@
 </div>
 
 
-<script>getGroupsList();</script>
+<script>getParentGroupsList();</script>
 </body>
 </html>
