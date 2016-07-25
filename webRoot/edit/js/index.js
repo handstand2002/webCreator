@@ -7,6 +7,9 @@ var allGroupsByParent = {};
 var layersHidden = [];
 var activeLayer = 0;
 
+var debugSpecific = {};
+debugSpecific.ajaxRequest = false;
+
 function addAjaxRequest(request)
 {
 	requestQueue.push(request);
@@ -15,6 +18,11 @@ function addAjaxRequest(request)
 function sendAjaxRequest(showSpinner)
 {
 	var requestInProgress = JSON.parse(JSON.stringify(requestQueue));
+	if (debugSpecific.ajaxRequest)
+	{
+		console.log("Sending Requests:");
+		console.log(requestInProgress);
+	}
 	requestQueue = [];
 	
 	var xhttp = new XMLHttpRequest();
@@ -26,6 +34,12 @@ function sendAjaxRequest(showSpinner)
 				
 				try {
 					res = JSON.parse(res)
+					
+					if (debugSpecific.ajaxRequest)
+					{
+						console.log("Received Requests:");
+						console.log(res);
+					}
 					
 					for (x in res)
 					{
@@ -136,14 +150,21 @@ function getGroupsList(parentid)
 
 function setGroupsList(ajaxResult)
 {
+	console.log("Setting groups list with data:");
+	console.log(ajaxResult);
+	
 	var parentid = null;
 	if (typeof(ajaxResult) != 'undefined' && typeof(ajaxResult[0]) != 'undefined')
 		parentid = ajaxResult[0]["parentid"];
+	
 	if (parentid == null)
-	{
 		parentid = 0;
-	}
-	var groupDiv = document.getElementById("groupDiv"+parentid);
+	
+	var layerNum = 0;
+	if (parentid > 0)
+		layerNum = (allGroupsById[parentid]["layerNum"] + 1);
+	
+	var groupDiv = document.getElementById("groupDiv"+layerNum);
 	if (groupDiv != null)
 	{
 		while (groupDiv.children.length > 0)	// Kill all the children
@@ -151,7 +172,7 @@ function setGroupsList(ajaxResult)
 		groupDiv.remove();
 	}
 	groupDiv = document.createElement("div");
-	groupDiv.id = "groupDiv" + parentid;
+	groupDiv.id = "groupDiv" + layerNum;
 	document.body.appendChild(groupDiv);
 	
 	var header = document.createElement("h4");
@@ -160,9 +181,6 @@ function setGroupsList(ajaxResult)
 	
 	var table = document.createElement("table");
 	// Set the layer num, based on parents
-	var layerNum = 0;
-	if (parentid > 0)
-		layerNum = (allGroupsById[parentid]["layerNum"] + 1);
 	
 	groupDiv.className = "groupDivLayerNum" + layerNum;
 	
@@ -203,21 +221,50 @@ function setGroupsList(ajaxResult)
 	
 	
 	// Create the form that will accept new group names
-	var newGroupInput = document.createElement("input");
-	newGroupInput.type = "text";
-	newGroupInput.id = "newGroupInput";
+//	var newGroupInput = document.createElement("input");
+//	newGroupInput.type = "text";
+//	newGroupInput.id = "newGroupInput";
+//	
+//	var newGroupInputSubmit = document.createElement("button");
+//	newGroupInputSubmit.setAttribute("onclick", "addGroup(document.getElementById('newGroupInput').value)");
+//	
+//	var submitBtn = document.createTextNode("Add");
+//	newGroupInputSubmit.appendChild(submitBtn);
 	
-	var newGroupInputSubmit = document.createElement("button");
-	newGroupInputSubmit.setAttribute("onclick", "addGroup(document.getElementById('newGroupInput').value)");
 	
-	var submitBtn = document.createTextNode("Add");
-	newGroupInputSubmit.appendChild(submitBtn);
+}
+
+function setLayerGroups(groupArray)
+{
+	var layerNum = groupArray[0]["layerNum"];
 	
-	groupDiv.appendChild(newGroupInput);
-	groupDiv.appendChild(newGroupInputSubmit);
-	groupDiv.appendChild(document.createElement("br"));
-	groupDiv.appendChild(table);
-	groupDiv.appendChild(document.createElement("hr"));
+	var groupDiv = document.getElementById("groupDivLayer"+layerNum);
+	if (groupDiv != null)
+	{
+		while (groupDiv.children.length > 0)	// Kill all the children
+			groupDiv.removeChild(groupDiv.children[0]);
+	}
+	else
+	{
+		groupDiv = document.createElement("div");
+		groupDiv.id = "groupDivLayer" + layerNum;
+	}
+	
+	var header = document.createElement("h4");
+	header.appendChild(document.createTextNode("Groups"));
+	
+	var table = document.createElement("table");
+	for (x in groupArray)
+	{
+		var row = table.insertRow(-1);
+		var cell = row.insertCell(0);
+		var btn = document.createElement("button");
+		btn.setAttribute("onclick", "groupSelect(" + groupArray[x]["id"] + ")" );
+		btn.id = "groupBtnId" + ajaxResult[x]["id"];
+		
+		btn.appendChild( document.createTextNode(groupName) );
+		cell.appendChild(btn);
+	}
 }
 
 function groupHighlight(id)
