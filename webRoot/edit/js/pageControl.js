@@ -6,6 +6,13 @@ function pageControl()
 
 pageControl.prototype.createLayerDiv = function(layerNum)
 {
+	var existingLayer = null;
+	if ( (existingLayer = document.getElementById("layerDiv" + layerNum)) != null)
+	{
+		existingLayer.remove();
+		delete this.layerDivsByLayerNum[layerNum];
+	}
+	
 	var div = document.createElement("div");
 	div.id = "layerDiv" + layerNum;
 	div.style.position = "fixed";
@@ -23,6 +30,7 @@ pageControl.prototype.createLayerDiv = function(layerNum)
 	var addGroupBtn = document.createElement("button");
 	addGroupBtn.appendChild(document.createTextNode("Add"));
 	addGroupBtn.inputField = addGroupInput;	// Link the input to the button
+	addGroupBtn.containerLayerDiv = div;
 	addGroupBtn.setAttribute("onclick", "groupController.addGroupForLayer(this)");
 	
 	// Create the div that houses all the layer buttons
@@ -43,6 +51,8 @@ pageControl.prototype.createLayerDiv = function(layerNum)
 	div.layerProperties = {};
 	div.layerProperties.layerNum = layerNum;
 	div.layerProperties.buttonDiv = subDiv;
+	div.layerProperties.newGroupInput = addGroupInput;
+	div.layerProperties.newGroupSubmitBtn = addGroupBtn;
 	
 	// Index the layerDiv
 	this.layerDivsByLayerNum[layerNum] = div;
@@ -64,15 +74,22 @@ pageControl.prototype.removeLayersHigherThan = function(layerNum)
 		groupController.layers.splice(layerNum, 1);
 }
 
-pageControl.prototype.fillLayerDiv = function(result, layerNum)
+pageControl.prototype.fillLayerDiv = function(fullRequest, layerNum)
 {
+	var result = fullRequest["response"];
+	
 	console.log("Demand to fill layer: " + layerNum)
+//	alert("demand to fill layer: " + layerNum);
 	var div = this.layerDivsByLayerNum[layerNum];
 	
 	// set parentid for the layer
-	div.layerProperties.parentId = result[0]["parentid"];
+	div.layerProperties.parentId = fullRequest.parameters.parentid;
 	if (div.layerProperties.parentId == null)
 		div.layerProperties.parentId = 0;
+	console.log("set the parentid: " + div.layerProperties.parentId);
+	
+	if (result.length == 0)
+		return;
 	
 	for (x in result)
 	{

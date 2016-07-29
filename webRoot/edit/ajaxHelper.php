@@ -16,7 +16,7 @@ class ajaxHelper
 				break;
 			case "addGroup":
 				$groupController = new groupController;
-				$groupController->addGroup( $parameters->name );
+				$groupController->addGroup( $parameters->name, $parameters->parentid );
 				break;
 				
 			

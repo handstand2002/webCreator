@@ -6,8 +6,9 @@ CREATE TABLE classGroup (
 	id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	parentid int NULL DEFAULT NULL,
 	ispage boolean DEFAULT False,
-	title varchar(30) UNIQUE,
+	title varchar(30),
 	
+	UNIQUE `test` (parentid, title),
 	FOREIGN KEY (parentid) REFERENCES classGroup(id)
 );
 

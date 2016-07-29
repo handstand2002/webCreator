@@ -26,11 +26,14 @@ class groupController {
 		$link->queryDB($query, $values);
 	}
 	
-	Function addGroup( $title )
+	Function addGroup( $title, $parentid = null)
 	{
+		if ($parentid == 0)
+			$parentid = null;
+		
 		$link = $_ENV["dbConnection"];
 		$query = "insert into classGroup (parentid, ispage, title) values (?, ?, ?)";
-		$values = array(null, false, $title);
+		$values = array($parentid, false, $title);
 		
 		$link->queryDB($query, $values);
 	}

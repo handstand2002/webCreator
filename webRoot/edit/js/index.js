@@ -7,6 +7,9 @@ var allGroupsByParent = {};
 var layersHidden = [];
 var activeLayer = 0;
 
+var requestDiv = null;
+var requestNum = 1;
+
 var debugSpecific = {};
 debugSpecific.ajaxRequest = false;
 
@@ -46,6 +49,7 @@ function sendAjaxRequest(showSpinner)
 						if (typeof(res[x]["callback"]) != 'undefined' && typeof(res[x]["response"]) != 'undefined')
 						{
 							var result = res[x]["response"];
+							var fullRequest = res[x];
 							eval(res[x]["callback"]);
 						}
 					}
@@ -71,23 +75,45 @@ function sendAjaxRequest(showSpinner)
 	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xhttp.send("d=" + JSON.stringify(requestInProgress));
 	
+	if (requestDiv == null)
+	{
+		console.log ("creating div...");
+		requestDiv = document.createElement("div");
+		requestDiv.style.position = "fixed";
+		requestDiv.style.right = "0%";
+		requestDiv.style.bottom = "0%";
+		requestDiv.style.height = "200px";
+		requestDiv.style.width = "100px";
+		requestDiv.style.overflow = "scroll";
+		requestDiv.style.border = "1px solid black";
+		
+		document.body.appendChild(requestDiv);
+	}
 	
+	var form = document.createElement("form");
+	form.action = "ajaxHelper.php";
+	form.target = "_BLANK";
+	form.method = "POST";
 	
-//	var form = document.createElement("form");
-//	form.action = "ajaxHelper.php";
-//	form.target = "_BLANK";
-//	form.method = "POST";
-//	
-//	var input = document.createElement("input");
-//	input.type = "hidden";
-//	input.name = "d";
-//	input.value = JSON.stringify(requestInProgress);
-//	
-//	var subBtn = document.createElement("input");
-//	subBtn.type = "submit";
-//	
-//	form.appendChild(input);
-//	form.appendChild(subBtn);
+	var input = document.createElement("input");
+	input.type = "hidden";
+	input.name = "d";
+	input.value = JSON.stringify(requestInProgress);
+	
+	var subBtn = document.createElement("input");
+	subBtn.type = "submit";
+	subBtn.value = "Request " + (requestNum++);
+	subBtn.title = "Action:\n";
+	for (x in requestInProgress)
+	{
+		subBtn.title += "\n" + requestInProgress[x]["action"];
+	}
+	
+	form.appendChild(input);
+	form.appendChild(subBtn);
+	
+	requestDiv.insertBefore(form, requestDiv.childNodes[0]);
+//	requestDiv.appendChild(form);
 //	
 //	document.body.appendChild(form);
 }
