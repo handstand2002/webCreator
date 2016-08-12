@@ -10,6 +10,9 @@ var activeLayer = 0;
 var requestDiv = null;
 var requestNum = 1;
 
+var ajaxBusyIndicator = null;
+var ajaxBusyNum = 0;
+
 var debugSpecific = {};
 debugSpecific.ajaxRequest = false;
 
@@ -20,6 +23,7 @@ function addAjaxRequest(request)
 
 function sendAjaxRequest(showSpinner)
 {
+	ajaxBusyNum++;
 	var requestInProgress = JSON.parse(JSON.stringify(requestQueue));
 	if (debugSpecific.ajaxRequest)
 	{
@@ -30,13 +34,31 @@ function sendAjaxRequest(showSpinner)
 	
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
-		if (xhttp.readyState == 4) {
+		while (ajaxBusyIndicator && ajaxBusyIndicator.childNodes.length > 0)
+			ajaxBusyIndicator.removeChild(ajaxBusyIndicator.childNodes[0]);
+		if (xhttp.readyState != 4)
+		{
+			if (ajaxBusyIndicator == null)
+			{
+				ajaxBusyIndicator = document.createElement("div");
+				ajaxBusyIndicator.style.position = "fixed";
+				ajaxBusyIndicator.style.backgroundColor = "white";
+				ajaxBusyIndicator.style.fontSize = "20pt";
+				ajaxBusyIndicator.style.right = "0%";
+				ajaxBusyIndicator.style.bottom = "0%";
+				document.body.appendChild(ajaxBusyIndicator);
+			}
+			ajaxBusyIndicator.appendChild(document.createTextNode(String.fromCharCode(0x30A0 + Math.random() * (0x30FF-0x30A0+1))))
+		}
+		else if (xhttp.readyState == 4) {
+			ajaxBusyNum--;
 			if ( xhttp.status == 200 )
 			{
-				var res = xhttp.responseText;
+				var rawRes = xhttp.responseText;
+				var res = null;
 				
 				try {
-					res = JSON.parse(res)
+					res = JSON.parse(rawRes)
 					
 					if (debugSpecific.ajaxRequest)
 					{
@@ -58,6 +80,9 @@ function sendAjaxRequest(showSpinner)
 				{
 					console.log("Wasn't able to parse result");
 					console.log(err);
+					
+					console.log("Raw Result:");
+					console.log(rawRes)
 				}
 				
 //				
@@ -77,7 +102,6 @@ function sendAjaxRequest(showSpinner)
 	
 	if (requestDiv == null)
 	{
-		console.log ("creating div...");
 		requestDiv = document.createElement("div");
 		requestDiv.style.position = "fixed";
 		requestDiv.style.right = "0%";

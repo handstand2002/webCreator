@@ -1,83 +1,66 @@
 function groupControl()
 {
-	this.layers = [];
-	
+	this.groupTree = [];
+	this.idList = {};
 }
 
-groupControl.prototype.fetchChildren = function(parentid)
+groupControl.prototype.setupPage = function()
 {
-	if (parentid == 0)
-		parentid = null;
-	
-	// if we're overwriting a layer, remove it from the layers array
-	if (parentid == null)
-		this.layers.splice(0, 1);
-	else
-		this.layers.splice(parentid, 1);
-	
+	this.fetchGroups();
+}
+
+groupControl.prototype.fetchGroups = function()
+{	
 	var request = {};
 	request.action = "getGroups";
 	request.parameters = {};
-	request.parameters.parentid = parentid;
-	request.callback = "groupController.setGroupsList(fullRequest)";
+	request.callback = "groupController.setGroupsList(result)";
 	
 	addAjaxRequest(request);
 	sendAjaxRequest(true);
 }
 
-groupControl.prototype.setGroupsList = function(fullRequest)
+groupControl.prototype.setGroupsList = function(result)
 {
-	var result = fullRequest["response"];
-	console.log(result);
+	pageController.removeAllLayers();
 	
-	this.layers.push(result);
-	
-	pageController.removeLayersHigherThan(this.layers.length);
-	pageController.createLayerDiv(this.layers.length)
-	pageController.fillLayerDiv(fullRequest, this.layers.length);
-	
+	this.groupTree = result;
+	pageController.addLayerToPage(this.groupTree, 0);
 }
 
-
-groupControl.prototype.addGroupForLayer = function(button)
+groupControl.prototype.addGroup = function(form)
 {
-	console.log("layerProperties Found on the 'Add' Button");
-	console.log(button.containerLayerDiv.layerProperties);
-	var parentid = button.containerLayerDiv.layerProperties.parentId;
-	
-	if (parentid == 0)
-		parentid = null;
-	
-	// if we're overwriting a layer, remove it from the layers array
-	this.layers.splice( (button.containerLayerDiv.layerProperties.layerNum-1), 1);
-	
 	var request = {};
 	request.action = "addGroup";
 	request.parameters = {};
-	request.parameters.name = button.inputField.value;
-	request.parameters.parentid = button.containerLayerDiv.layerProperties.parentId;
+	request.parameters.name = form.inputField.value;
+	request.parameters.parentid = form.layerID;
 	request.callback = "";
-	
 	addAjaxRequest(request);
 	
 	request = {};
 	request.action = "getGroups";
 	request.parameters = {};
-	request.parameters.parentid = parentid;
-	request.callback = "groupController.setGroupsList(fullRequest)";
+	request.callback = "groupController.setGroupsList(result)";
+	addAjaxRequest(request);
 	
+	request = {}
+	request.action = "getGroupParents";
+	request.parameters = {};
+	request.parameters.layerID = form.layerID;
+	request.callback = "groupController.addGroupCallback(result)";
 	addAjaxRequest(request);
 	
 	sendAjaxRequest(true);
 }
 
-groupControl.prototype.selectGroup = function(groupBtn)
+groupControl.prototype.addGroupCallback = function(result)
 {
-	console.log(groupBtn.groupProperties);
-	
-	// Remove all the layers higher than the one clicked on
-	pageController.removeLayersHigherThan(groupBtn.groupProperties.layerNum);
-	
-	// fetch children of button clicked, and populate new layer
-	this.fetchChildren(groupBtn.groupProperties.id);
+	for (x in result)
+	{
+		if (result[x] != 0)
+		{
+			document.getElementById("groupBtnId"+result[x]).click();
+		}
+	}
 }
