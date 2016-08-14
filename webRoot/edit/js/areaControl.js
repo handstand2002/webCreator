@@ -6,7 +6,7 @@ function areaControl()
 	this.groupPane = null;
 	this.rootGroup = null;
 	
-	this.groupDivById = {};
+	this.groupDivById = null;
 }
 
 areaControl.prototype.setupPage = function()
@@ -28,8 +28,7 @@ areaControl.prototype.setupPage = function()
 	document.body.appendChild(secondPane);
 	this.groupPane = secondPane;
 	
-	this.rootGroup = this.createGroupForTable("ROOT", 0, 0);
-	this.groupPane.appendChild(this.rootGroup);
+	this.resetGroupList();
 	
 	var newAreaForm = document.createElement("form");
 	newAreaForm.action = "javascript:;";
@@ -66,25 +65,57 @@ areaControl.prototype.setupPage = function()
 	
 	currentAreaSelect.add(noOption);
 	
+	var saveAreaBtn = document.createElement("button");
+	saveAreaBtn.setAttribute("onclick", "areaController.saveAreaGroups()");
+	saveAreaBtn.appendChild(document.createTextNode("Save Area"));
+	firstPane.appendChild(document.createElement("BR"));
+	firstPane.appendChild(saveAreaBtn);
+	
 	this.fetchAreas();
 }
 
-areaControl.prototype.toggleGroupShow = function(spanBtn)
+areaControl.prototype.resetGroupList = function()
+{
+	while (this.groupPane.childNodes.length > 0)
+		this.groupPane.removeChild(this.groupPane.childNodes[0]);
+	
+	this.rootGroup = this.createGroupForTable("ROOT", 0, 0);
+	
+	this.groupPane.appendChild(this.rootGroup);
+	
+	this.groupDivById = {0: this.rootGroup};
+}
+
+areaControl.prototype.groupShow = function(spanBtn)
 {
 	while (spanBtn.childNodes.length > 0)
 		spanBtn.removeChild(spanBtn.childNodes[0]);
 	
+	spanBtn.parentDiv.childArea.style.display = "block";
+	spanBtn.parentDiv.state = 1;
+	spanBtn.appendChild(document.createTextNode("[-]"))
+}
+
+areaControl.prototype.groupHide = function(spanBtn)
+{
+	// Remove the +/- button
+	while (spanBtn.childNodes.length > 0)
+		spanBtn.removeChild(spanBtn.childNodes[0]);
+	
+	spanBtn.parentDiv.childArea.style.display = "none";
+	spanBtn.parentDiv.state = 0;
+	spanBtn.appendChild(document.createTextNode("[+]"))
+}
+
+areaControl.prototype.toggleGroupShow = function(spanBtn)
+{
 	if (spanBtn.parentDiv.state == 0)
 	{
-		spanBtn.parentDiv.childArea.style.display = "block";
-		spanBtn.parentDiv.state = 1;
-		spanBtn.appendChild(document.createTextNode("[-]"))
+		this.groupShow(spanBtn);
 	}
 	else
 	{
-		spanBtn.parentDiv.childArea.style.display = "none";
-		spanBtn.parentDiv.state = 0;
-		spanBtn.appendChild(document.createTextNode("[+]"))
+		this.groupHide(spanBtn);
 	}
 }
 
@@ -102,11 +133,14 @@ areaControl.prototype.createGroupForTable = function(name, id)
 	expandBtn.style.color = "black";
 	expandBtn.href = "javascript:;";
 	expandBtn.setAttribute("onclick", "areaController.toggleGroupShow(this)");
+	div.expandBtn = expandBtn;
 	
 	div.appendChild(expandBtn);
 	var checkbox = document.createElement("input");
 	checkbox.type = "checkbox";
-	checkbox.indeterminate = true;
+	checkbox.parentDiv = div;
+	checkbox.setAttribute("onchange", "areaController.onCheckboxChange(this.parentDiv)");
+	
 	div.checkbox = checkbox;
 	div.appendChild(checkbox);
 	div.appendChild(document.createTextNode( name ));
@@ -118,6 +152,81 @@ areaControl.prototype.createGroupForTable = function(name, id)
 	div.parentDiv = null;
 	
 	return div;
+}
+
+areaControl.prototype.onCheckboxChange = function(div)
+{
+	// Go through children, checking appropriately
+	for (x in div.childArea.childNodes)
+		this.checkChildrenBasedOnParent(div.childArea.childNodes[x]);
+	
+	// Go through parents, checking appropriately
+	this.checkParentBasedOnChild(div);
+}
+
+areaControl.prototype.checkParentBasedOnChild = function(childDiv)
+{
+	if (childDiv.parentDiv == null)
+		return;
+	
+	childDiv.parentDiv.checkbox.checked = false;
+	childDiv.parentDiv.checkbox.indeterminate = false;
+	
+	if (childDiv.checkbox.checked || childDiv.checkbox.indeterminate)
+	{
+		var allChecked = true;
+		// Check if all the other children are checked
+		for (x in childDiv.parentDiv.childArea.childNodes)
+		{
+			if (typeof(childDiv.parentDiv.childArea.childNodes[x]) != 'object')
+				continue;
+			
+			if (!childDiv.parentDiv.childArea.childNodes[x].checkbox.checked)
+			{
+				allChecked = false;
+				break;
+			}
+		}
+		if (allChecked)
+			childDiv.parentDiv.checkbox.checked = true;
+		else
+			childDiv.parentDiv.checkbox.indeterminate = true;
+	}
+	else
+	{
+		var noneChecked = true;
+		// Check to see if all other children are unchecked
+		for (x in childDiv.parentDiv.childArea.childNodes)
+		{
+			if (typeof(childDiv.parentDiv.childArea.childNodes[x].checkbox) != 'undefined' && childDiv.parentDiv.childArea.childNodes[x].checkbox.checked)
+			{
+				noneChecked = false;
+				break;
+			}
+		}
+		if (noneChecked)
+			childDiv.parentDiv.checkbox.checked = false;
+		else
+			childDiv.parentDiv.checkbox.indeterminate = true;
+	}
+	
+	this.checkParentBasedOnChild(childDiv.parentDiv);
+}
+
+areaControl.prototype.checkChildrenBasedOnParent = function(childDiv)
+{
+	if (childDiv.parentDiv == null)
+		return;
+	
+	if (childDiv.parentDiv.checkbox.checked)
+		childDiv.checkbox.checked = true;
+	else
+		childDiv.checkbox.checked = false;
+	
+	for (x in childDiv.childArea.childNodes)
+	{
+		this.checkChildrenBasedOnParent(childDiv.childArea.childNodes[x]);
+	}
 }
 
 areaControl.prototype.addArea = function()
@@ -142,7 +251,7 @@ areaControl.prototype.addArea = function()
 
 areaControl.prototype.fetchAreas = function()
 {	
-	this.groupDivById = {};
+	this.groupDivById = {0: this.rootGroup};
 	
 	var request = {};
 	request.action = "getAreas";
@@ -209,14 +318,59 @@ areaControl.prototype.selectArea = function()
 
 areaControl.prototype.setAreaGroups = function(result)
 {
-	console.log(result);
+	// uncheck all boxes
+	for (k in this.groupDivById)
+	{
+		this.groupDivById[k].checkbox.checked = false;
+		this.groupDivById[k].checkbox.indeterminate = false;
+	}
+	
+	// Check appropriate boxes
 	for (x in result)
 	{
 //		console.log(this.groupDivById[result[x]["groupid"]].checkbox);
-		var checkbox = this.groupDivById[result[x]["groupid"]].checkbox; 
-		if (checkbox.indeterminate)
-			checkbox.indeterminate = false;
+		var checkbox = this.groupDivById[result[x]["groupid"]].checkbox;
 		checkbox.checked = true;
+		this.onCheckboxChange(checkbox.parentDiv);
+		
+		this.expandParents(checkbox.parentDiv);
+	}
+}
+
+areaControl.prototype.expandParents = function(childDiv)
+{
+	if (childDiv.parentDiv == null)
+		return;
+	
+	this.groupShow(childDiv.parentDiv.expandBtn);
+}
+
+areaControl.prototype.saveAreaGroups = function()
+{
+	var checkedIDs = [];
+	for (x in this.groupDivById)
+	{
+		if (x != 0)
+		{
+			if (this.groupDivById[x].checkbox.checked)
+				checkedIDs.push(x);
+		}
 	}
 	
+	var request = {};
+	request.action = "saveAreaGroups";
+	request.parameters = {};
+	request.parameters.area = this.currentAreaSelect.value;
+	request.parameters.groups = checkedIDs;
+	request.callback = "";
+	addAjaxRequest(request);
+	
+	request = {};
+	request.action = "getAreaGroups";
+	request.parameters = {};
+	request.parameters.area = this.currentAreaSelect.value;
+	request.callback = "areaController.setAreaGroups(result)";
+	
+	addAjaxRequest(request);
+	sendAjaxRequest(true);
 }

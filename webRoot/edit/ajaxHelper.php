@@ -78,6 +78,12 @@ class ajaxHelper
 		return $areaController->getAreaGroups($parameters->area);
 	}
 	
+	private function saveAreaGroups($parameters)
+	{
+		$areaController = new areaController;
+		$areaController->saveAreaGroups($parameters->area, $parameters->groups);
+	}
+	
 	
 } // End of ajaxHelper class
 

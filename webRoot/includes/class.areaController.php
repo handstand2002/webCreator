@@ -49,6 +49,34 @@ class areaController {
 		return $res;
 	}
 	
+	function saveAreaGroups($areaid, $groupArray)
+	{
+		$link = $_ENV["dbConnection"];
+		
+		$query = "delete from groupInArea where areaid=?";
+		$values = array($areaid);
+		$link->queryDB($query, $values);
+		
+		if (count($groupArray) > 0)
+		{
+			$query = "insert into groupInArea (areaid, groupid) values ";
+			$values = array();
+			$first = true;
+			foreach($groupArray as $id)
+			{
+				if (!$first)
+					$query .= ", ";
+				$query .= "(?, ?)";
+				$values[] = $areaid;
+				$values[] = $id;
+				$first = false;
+			}
+			
+			$link->queryDB($query, $values);
+			
+		}
+	}
+	
 }
 ?>
 
