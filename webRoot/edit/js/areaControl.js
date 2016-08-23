@@ -72,6 +72,8 @@ areaControl.prototype.setupPage = function()
 	firstPane.appendChild(saveAreaBtn);
 	
 	this.fetchAreas();
+	
+	codeAreaController.setupPage("testGroup", 1);
 }
 
 areaControl.prototype.resetGroupList = function()
@@ -122,6 +124,7 @@ areaControl.prototype.toggleGroupShow = function(spanBtn)
 areaControl.prototype.createGroupForTable = function(name, id)
 {
 	var div = document.createElement("div");
+	div.groupID = id;
 	
 	var expandBtn = document.createElement("a");
 	expandBtn.appendChild(document.createTextNode( "[+]" ));
@@ -143,7 +146,15 @@ areaControl.prototype.createGroupForTable = function(name, id)
 	
 	div.checkbox = checkbox;
 	div.appendChild(checkbox);
-	div.appendChild(document.createTextNode( name ));
+	var groupBtn = document.createElement("a");
+	if (id != 0)
+	{
+		groupBtn.href = "javascript:;";
+		groupBtn.setAttribute("onclick", "areaController.onGroupClick(this)");
+	}
+	groupBtn.parentDiv = div;
+	groupBtn.appendChild(document.createTextNode( name ))
+	div.appendChild(groupBtn);
 	
 	var childArea = document.createElement("span");
 	childArea.style.display = "none";
@@ -373,4 +384,12 @@ areaControl.prototype.saveAreaGroups = function()
 	
 	addAjaxRequest(request);
 	sendAjaxRequest(true);
+}
+
+areaControl.prototype.onGroupClick = function(link)
+{
+	console.log(link.parentDiv);
+	console.log(link.parentDiv.groupID);
+	
+	
 }
