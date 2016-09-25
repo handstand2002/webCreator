@@ -1,0 +1,6 @@
+INDEX VERSION 1.3+/Users/grant/gitHub/webCreator/webRoot/.metadata/.plugins/org.eclipse.wst.jsdt.core/indexes
+1841983599.index
+1346767440.index
+4246087767.index
+3669788607.index
+1360069093.index

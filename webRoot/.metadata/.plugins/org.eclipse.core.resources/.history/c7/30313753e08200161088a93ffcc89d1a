@@ -1,0 +1,27 @@
+<?php 
+class functionController{
+	
+	function getGroupFunctions($groupID)
+	{
+		$link = $_ENV["dbConnection"];
+		
+		$query = "SELECT 
+					functionInGroup.groupid, 
+					functionInGroup.functionid,
+					classFunction.text
+				FROM 
+					functionInGroup,
+					classFunction
+				WHERE 
+					classFunction.groupid=functionInGroup.groupid AND
+					groupid=?";
+		$values = array($groupID);
+		
+		echo "Values: $groupID<br />";
+		
+		$res = $link->queryDB($query, $values);
+		
+		return $res;
+	}
+}
+?>
